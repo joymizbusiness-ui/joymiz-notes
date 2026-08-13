@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joymiz Notes - Free Quick Notes App</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --dark-nav: #0f172a;
+  --bg: #f1f5f9;
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
+  --radius: 10px;
+  --note-blue: #3b82f6;
+  --note-green: #22c55e;
+  --note-yellow: #eab308;
+  --note-red: #ef4444;
+  --note-purple: #a855f7;
+  --note-gray: #94a3b8;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+nav { background: var(--dark-nav); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+nav .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+nav .logo span { color: var(--primary); }
+.nav-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search-box { position: relative; }
+.search-box input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 12px 8px 34px; border-radius: 6px; font-size: 14px; width: 220px; outline: none; transition: background 0.2s; }
+.search-box input::placeholder { color: rgba(255,255,255,0.5); }
+.search-box input:focus { background: rgba(255,255,255,0.18); }
+.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+select, button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; outline: none; transition: background 0.2s; }
+select:hover, button:hover { background: rgba(255,255,255,0.2); }
+select option { background: var(--dark-nav); color: white; }
+.btn-primary { background: var(--primary) !important; border-color: var(--primary) !important; font-weight: 600; }
+.btn-primary:hover { background: var(--primary-hover) !important; }
+.view-toggle { display: flex; gap: 0; }
+.view-toggle button { border-radius: 0; }
+.view-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.view-toggle button:last-child { border-radius: 0 6px 6px 0; }
+.view-toggle button.active { background: var(--primary) !important; border-color: var(--primary) !important; }
+main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.notes-grid.list-view { grid-template-columns: 1fr; }
+.note-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transition: box-shadow 0.2s, transform 0.15s; cursor: default; position: relative; border-left: 4px solid var(--note-blue); display: flex; flex-direction: column; }
+.note-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.note-card.color-blue { border-left-color: var(--note-blue); }
+.note-card.color-green { border-left-color: var(--note-green); }
+.note-card.color-yellow { border-left-color: var(--note-yellow); }
+.note-card.color-red { border-left-color: var(--note-red); }
+.note-card.color-purple { border-left-color: var(--note-purple); }
+.note-card.color-gray { border-left-color: var(--note-gray); }
+.note-card.pinned::before { content: ''; position: absolute; top: 0; right: 0; width: 0; height: 0; border-left: 20px solid transparent; border-top: 20px solid var(--primary); z-index: 2; }
+.note-card .card-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 14px 0; }
+.note-card .card-title { font-size: 15px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-card .card-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.2s; }
+.note-card:hover .card-actions { opacity: 1; }
+.card-actions button { background: none; border: none; padding: 4px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.card-actions button svg { width: 16px; height: 16px; color: var(--text-light); }
+.card-actions button:hover svg { color: var(--primary); }
+.note-card .card-content { padding: 8px 14px; font-size: 13px; color: var(--text-light); line-height: 1.5; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
+.note-card .card-footer { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-size: 11px; color: var(--text-light); border-top: 1px solid var(--border); margin-top: 8px; }
+.notes-list .note-card { flex-direction: row; align-items: stretch; }
+.notes-list .note-card .card-header { flex-direction: column; min-width: 200px; }
+.notes-list .note-card .card-content { flex: 1; -webkit-line-clamp: 2; padding: 14px; }
+.notes-list .note-card .card-footer { border-top: none; border-left: 1px solid var(--border); flex-direction: column; align-items: flex-start; min-width: 120px; }
+.empty-state { text-align: center; padding: 80px 20px; color: var(--text-light); }
+.empty-state svg { width: 80px; height: 80px; margin-bottom: 16px; opacity: 0.3; }
+.empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal { background: white; border-radius: var(--radius); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 18px; }
+.modal-close { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; }
+.modal-close:hover { background: var(--bg); }
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+.form-group input, .form-group textarea, .form-group select { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+.form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
+.form-group textarea { min-height: 200px; resize: vertical; line-height: 1.6; }
+.color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-option { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: border-color 0.2s, transform 0.15s; }
+.color-option:hover { transform: scale(1.1); }
+.color-option.selected { border-color: var(--dark-nav); }
+.color-option.c-blue { background: var(--note-blue); }
+.color-option.c-green { background: var(--note-green); }
+.color-option.c-yellow { background: var(--note-yellow); }
+.color-option.c-red { background: var(--note-red); }
+.color-option.c-purple { background: var(--note-purple); }
+.color-option.c-gray { background: var(--note-gray); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.modal-footer button { padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; }
+.modal-footer .btn-cancel { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.modal-footer .btn-save { background: var(--primary); color: white; border: none; }
+.modal-footer .btn-save:hover { background: var(--primary-hover); }
+.footer { background: var(--dark-nav); color: white; padding: 40px 24px; margin-top: auto; }
+.footer-inner { max-width: 1400px; margin: 0 auto; }
+.footer h3 { font-size: 16px; margin-bottom: 20px; color: white; }
+.footer h3 span { color: var(--primary); }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 30px; }
+.tool-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 16px; text-decoration: none; color: white; transition: background 0.2s, transform 0.15s; display: block; }
+.tool-card:hover { background: rgba(255,255,255,0.14); transform: translateY(-2px); }
+.tool-card h4 { font-size: 14px; margin-bottom: 4px; }
+.tool-card p { font-size: 12px; color: rgba(255,255,255,0.6); }
+.footer-bottom { text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; color: rgba(255,255,255,0.5); }
+@media (max-width: 768px) {
+  nav { padding: 12px 16px; }
+  .search-box input { width: 160px; }
+  main { padding: 16px; }
+  .notes-grid { grid-template-columns: 1fr; }
+  .notes-list .note-card { flex-direction: column; }
+  .notes-list .note-card .card-header { min-width: auto; flex-direction: row; }
+  .notes-list .note-card .card-footer { border-left: none; border-top: 1px solid var(--border); min-width: auto; flex-direction: row; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Joymiz <span>Notes</span></div>
+  <div class="nav-controls">
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search notes...">
+    </div>
+    <select id="sortSelect">
+      <option value="created">Date Created</option>
+      <option value="modified">Last Modified</option>
+      <option value="title">Title</option>
+    </select>
+    <div class="view-toggle">
+      <button id="gridViewBtn" class="active" title="Grid view">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </button>
+      <button id="listViewBtn" title="List view">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      </button>
+    </div>
+    <button class="btn-primary" id="newNoteBtn">+ New Note</button>
+  </div>
+</nav>
+
+<main>
+  <div id="notesContainer" class="notes-grid"></div>
+  <div id="emptyState" class="empty-state" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+    <h3>No notes yet</h3>
+    <p>Click "+ New Note" to get started</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <h3>More <span>Joymiz</span> Tools</h3>
+    <div class="tools-grid">
+      <a href="#" class="tool-card"><h4>Joymiz Timer</h4><p>Pomodoro & countdown timer</p></a>
+      <a href="#" class="tool-card"><h4>Joymiz Calculator</h4><p>Quick math calculations</p></a>
+      <a href="#" class="tool-card"><h4>Joymiz Weather</h4><p>Current weather & forecast</p></a>
+      <a href="#" class="tool-card"><h4>Joymiz Habit Tracker</h4><p>Track daily habits & goals</p></a>
+      <a href="#" class="tool-card"><h4>Joymiz Bookmark Saver</h4><p>Save & organize links</p></a>
+      <a href="#" class="tool-card"><h4>Joymiz Markdown Editor</h4><p>Write & preview markdown</p></a>
+    </div>
+    <div class="footer-bottom">&copy; 2026 Joymiz. Free tools for everyone.</div>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">New Note</h2>
+      <button class="modal-close" id="modalClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="noteTitle" placeholder="Note title...">
+      </div>
+      <div class="form-group">
+        <label>Content</label>
+        <textarea id="noteContent" placeholder="Write your note here..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-options" id="colorOptions">
+          <div class="color-option c-blue selected" data-color="blue" title="Blue"></div>
+          <div class="color-option c-green" data-color="green" title="Green"></div>
+          <div class="color-option c-yellow" data-color="yellow" title="Yellow"></div>
+          <div class="color-option c-red" data-color="red" title="Red"></div>
+          <div class="color-option c-purple" data-color="purple" title="Purple"></div>
+          <div class="color-option c-gray" data-color="gray" title="Gray"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="modalCancel">Cancel</button>
+      <button class="btn-save" id="modalSave">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const LS_KEY = 'joymiz_notes';
+  let notes = loadNotes();
+  let editingId = null;
+  let currentView = 'grid';
+
+  function loadNotes() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveNotes() { localStorage.setItem(LS_KEY, JSON.stringify(notes)); }
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+
+  const noteTitle = $('#noteTitle');
+  const noteContent = $('#noteContent');
+  const noteModal = $('#noteModal');
+  const notesContainer = $('#notesContainer');
+  const emptyState = $('#emptyState');
+  const searchInput = $('#searchInput');
+  const sortSelect = $('#sortSelect');
+
+  function getWordCount(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+  function formatDate(ts) {
+    const d = new Date(ts);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function render() {
+    const query = searchInput.value.toLowerCase();
+    const sortBy = sortSelect.value;
+    let filtered = notes.filter(n =>
+      n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query)
+    );
+    filtered.sort((a, b) => {
+      const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
+      if (ap !== bp) return bp - ap;
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      if (sortBy === 'modified') return b.updatedAt - a.updatedAt;
+      return b.createdAt - a.createdAt;
+    });
+
+    if (filtered.length === 0) {
+      notesContainer.innerHTML = '';
+      emptyState.style.display = 'block';
+      emptyState.querySelector('h3').textContent = notes.length === 0 ? 'No notes yet' : 'No matching notes';
+      emptyState.querySelector('p').textContent = notes.length === 0 ? 'Click "+ New Note" to get started' : 'Try a different search term';
+      return;
+    }
+    emptyState.style.display = 'none';
+    notesContainer.className = currentView === 'list' ? 'notes-grid list-view notes-list' : 'notes-grid';
+
+    notesContainer.innerHTML = filtered.map(n => `
+      <div class="note-card color-${n.color}${n.pinned ? ' pinned' : ''}" data-id="${n.id}">
+        <div class="card-header">
+          <div class="card-title">${esc(n.title || 'Untitled')}</div>
+          <div class="card-actions">
+            <button class="pin-btn" title="${n.pinned ? 'Unpin' : 'Pin'}" data-id="${n.id}">
+              <svg viewBox="0 0 24 24" fill="${n.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </button>
+            <button class="edit-btn" title="Edit" data-id="${n.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+            </button>
+            <button class="export-btn" title="Export" data-id="${n.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="delete-btn" title="Delete" data-id="${n.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="card-content">${esc(n.content)}</div>
+        <div class="card-footer">
+          <span>${formatDate(n.createdAt)}</span>
+          <span>${getWordCount(n.content)} words</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  function openModal(note) {
+    editingId = note ? note.id : null;
+    $('#modalTitle').textContent = note ? 'Edit Note' : 'New Note';
+    noteTitle.value = note ? note.title : '';
+    noteContent.value = note ? note.content : '';
+    $$('.color-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.color === (note ? note.color : 'blue'));
+    });
+    noteModal.classList.add('active');
+    noteTitle.focus();
+  }
+
+  function closeModal() { noteModal.classList.remove('active'); editingId = null; }
+
+  function getSelectedColor() { return document.querySelector('.color-option.selected')?.dataset.color || 'blue'; }
+
+  $('#newNoteBtn').onclick = () => openModal(null);
+  $('#modalClose').onclick = closeModal;
+  $('#modalCancel').onclick = closeModal;
+  noteModal.onclick = e => { if (e.target === noteModal) closeModal(); };
+
+  $$('.color-option').forEach(el => {
+    el.onclick = () => { $$('.color-option').forEach(c => c.classList.remove('selected')); el.classList.add('selected'); };
+  });
+
+  $('#modalSave').onclick = () => {
+    const title = noteTitle.value.trim();
+    const content = noteContent.value.trim();
+    if (!title && !content) return;
+    const color = getSelectedColor();
+    if (editingId) {
+      const n = notes.find(x => x.id === editingId);
+      if (n) { n.title = title || 'Untitled'; n.content = content; n.color = color; n.updatedAt = Date.now(); }
+    } else {
+      notes.push({ id: crypto.randomUUID(), title: title || 'Untitled', content, color, pinned: false, createdAt: Date.now(), updatedAt: Date.now() });
+    }
+    saveNotes(); render(); closeModal();
+  };
+
+  notesContainer.onclick = e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.classList.contains('pin-btn')) {
+      const n = notes.find(x => x.id === id);
+      if (n) { n.pinned = !n.pinned; saveNotes(); render(); }
+    } else if (btn.classList.contains('edit-btn')) {
+      openModal(notes.find(x => x.id === id));
+    } else if (btn.classList.contains('delete-btn')) {
+      if (confirm('Delete this note?')) { notes = notes.filter(x => x.id !== id); saveNotes(); render(); }
+    } else if (btn.classList.contains('export-btn')) {
+      const n = notes.find(x => x.id === id);
+      if (n) {
+        const blob = new Blob([n.title + '\n\n' + n.content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (n.title || 'note').replace(/[^a-z0-9]/gi, '_') + '.txt';
+        a.click(); URL.revokeObjectURL(a.href);
+      }
+    }
+  };
+
+  searchInput.oninput = render;
+  sortSelect.onchange = render;
+
+  $('#gridViewBtn').onclick = () => { currentView = 'grid'; $('#gridViewBtn').classList.add('active'); $('#listViewBtn').classList.remove('active'); render(); };
+  $('#listViewBtn').onclick = () => { currentView = 'list'; $('#listViewBtn').classList.add('active'); $('#gridViewBtn').classList.remove('active'); render(); };
+
+  document.onkeydown = e => { if (e.key === 'Escape') closeModal(); };
+
+  render();
+})();
+</script>
+</body>
+</html>
